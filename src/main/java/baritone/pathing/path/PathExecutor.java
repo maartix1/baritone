@@ -49,6 +49,7 @@ public class PathExecutor implements IPathExecutor, Helper {
 
     private static final double MAX_MAX_DIST_FROM_PATH = 3;
     private static final double MAX_DIST_FROM_PATH = 2;
+    private static final double MAX_TRAVERSE_VERTICAL_OFFSET = 1.5D;
 
     /**
      * Default value is equal to 10 seconds. It's find to decrease it, but it must be at least 5.5s (110 ticks).
@@ -322,7 +323,7 @@ public class PathExecutor implements IPathExecutor, Helper {
             BlockPos traverseSrc = path.positions().get(pathPosition);
             BlockPos traverseDest = path.positions().get(pathPosition + 1);
             double verticalOffset = Math.abs(ctx.player().position().y - traverseSrc.getY());
-            if (verticalOffset <= 1.5D) {
+            if (verticalOffset <= MAX_TRAVERSE_VERTICAL_OFFSET) {
                 double distanceFromTraverse = Math.min(
                         VecUtils.entityFlatDistanceToCenter(ctx.player(), traverseSrc),
                         VecUtils.entityFlatDistanceToCenter(ctx.player(), traverseDest)

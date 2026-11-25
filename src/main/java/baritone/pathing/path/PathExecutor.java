@@ -305,31 +305,33 @@ public class PathExecutor implements IPathExecutor, Helper {
     }
 
     private boolean possiblyOffPath(Tuple<Double, BlockPos> status, double leniency) {
-        double distanceFromPath = status.getA();
-        if (distanceFromPath > leniency) {
-            // Vertical distance is expected while falling; only horizontal alignment matters.
-            if (path.movements().get(pathPosition) instanceof MovementFall) {
-                BlockPos fallDest = path.positions().get(pathPosition + 1); // .get(pathPosition) is the block we fell off of
-                return VecUtils.entityFlatDistanceToCenter(ctx.player(), fallDest) >= leniency;
-            }
+        if (status.getA() <= leniency) {
+            return false;
+        }
+        if (pathPosition < 0 || pathPosition >= path.movements().size()
+                || pathPosition + 1 >= path.positions().size()) {
+            return true;
+        }
 
-            // A fast client timer can leave the player airborne during a traverse.
-            // Do not treat the jump's vertical displacement as having left the path.
-            if (path.movements().get(pathPosition) instanceof MovementTraverse && !ctx.player().onGround()) {
-                BlockPos traverseSrc = path.positions().get(pathPosition);
-                BlockPos traverseDest = path.positions().get(pathPosition + 1);
+        IMovement current = path.movements().get(pathPosition);
+        if (current instanceof MovementFall) {
+            BlockPos fallDest = path.positions().get(pathPosition + 1);
+            return VecUtils.entityFlatDistanceToCenter(ctx.player(), fallDest) >= leniency;
+        }
+        if (current instanceof MovementTraverse && !ctx.player().onGround()) {
+            BlockPos traverseSrc = path.positions().get(pathPosition);
+            BlockPos traverseDest = path.positions().get(pathPosition + 1);
+            double verticalOffset = Math.abs(ctx.player().position().y - traverseSrc.getY());
+            if (verticalOffset <= 1.5D) {
                 double distanceFromTraverse = Math.min(
                         VecUtils.entityFlatDistanceToCenter(ctx.player(), traverseSrc),
                         VecUtils.entityFlatDistanceToCenter(ctx.player(), traverseDest)
                 );
                 return distanceFromTraverse >= leniency;
             }
-
-            return true;
         }
-        return false;
+        return true;
     }
-
     /**
      * Regardless of current path position, snap to the current player feet if possible
      *

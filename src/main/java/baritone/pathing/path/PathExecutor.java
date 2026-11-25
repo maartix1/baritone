@@ -307,16 +307,27 @@ public class PathExecutor implements IPathExecutor, Helper {
     private boolean possiblyOffPath(Tuple<Double, BlockPos> status, double leniency) {
         double distanceFromPath = status.getA();
         if (distanceFromPath > leniency) {
-            // when we're midair in the middle of a fall, we're very far from both the beginning and the end, but we aren't actually off path
+            // Vertical distance is expected while falling; only horizontal alignment matters.
             if (path.movements().get(pathPosition) instanceof MovementFall) {
                 BlockPos fallDest = path.positions().get(pathPosition + 1); // .get(pathPosition) is the block we fell off of
-                return VecUtils.entityFlatDistanceToCenter(ctx.player(), fallDest) >= leniency; // ignore Y by using flat distance
-            } else {
-                return true;
+                return VecUtils.entityFlatDistanceToCenter(ctx.player(), fallDest) >= leniency;
             }
-        } else {
-            return false;
+
+            // A fast client timer can leave the player airborne during a traverse.
+            // Do not treat the jump's vertical displacement as having left the path.
+            if (path.movements().get(pathPosition) instanceof MovementTraverse && !ctx.player().onGround()) {
+                BlockPos traverseSrc = path.positions().get(pathPosition);
+                BlockPos traverseDest = path.positions().get(pathPosition + 1);
+                double distanceFromTraverse = Math.min(
+                        VecUtils.entityFlatDistanceToCenter(ctx.player(), traverseSrc),
+                        VecUtils.entityFlatDistanceToCenter(ctx.player(), traverseDest)
+                );
+                return distanceFromTraverse >= leniency;
+            }
+
+            return true;
         }
+        return false;
     }
 
     /**
